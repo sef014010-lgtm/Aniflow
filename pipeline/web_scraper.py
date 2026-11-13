@@ -372,7 +372,13 @@ def _get_soup(url, referer=None):
                 return None
 
             if len(content) > 500:
-                return BeautifulSoup(content, "lxml")
+                parsed_page = BeautifulSoup(content, "lxml")
+                # GlobalComix is a JavaScript-heavy SPA. If its initial HTML
+                # has no useful catalog/reader DOM, retry through Chromium.
+                if 'globalcomix.com' in domain and len(parsed_page.select('a[href]')) < 10 and len(parsed_page.select('img[src], img[data-src]')) < 2:
+                    browser_page = _fetch_with_drission(url, referer)
+                    if browser_page is not None: return browser_page
+                return parsed_page
             _last_fetch_error = f"The site returned an unexpectedly short page ({len(content)} bytes)."
             print(f"[Scraper] Short response ({len(content)} bytes), retrying...")
             time.sleep(1)
