@@ -232,6 +232,8 @@ def browse_folder():
     try:
         import platform
         import subprocess
+        if os.getenv('COLAB_RELEASE_TAG') or (platform.system() == 'Linux' and not os.getenv('DISPLAY')):
+            return jsonify({'error': 'Native folder browsing is unavailable in Colab. Use the Upload Folder / ZIP controls in the Source step, or enter a Google Drive folder path.'}), 400
         
         if platform.system() == 'Darwin':  # macOS
             # Use AppleScript for folder picker on macOS
