@@ -876,6 +876,9 @@ async function uploadLocalImages(input) {
     if (!response.ok) throw new Error(data.error || 'Upload failed');
     const folder = document.getElementById('inputSourceFolder');
     if (folder) folder.value = data.path;
+    const nameField = document.getElementById('inputProjectName');
+    if (nameField && !nameField.value.trim()) nameField.value = data.project_name;
+    APP.projectName = (nameField && nameField.value.trim()) || data.project_name;
     APP.sourceFolder = data.path;
     if (status) status.textContent = `Uploaded ${data.images} images. Folder ready: ${data.path}`;
     toast(`Uploaded ${data.images} images`, 'success');
