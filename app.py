@@ -2299,6 +2299,60 @@ def upload_asset(asset_type):
     f.save(filepath)
     return jsonify({'status': 'uploaded', 'path': filepath, 'name': f.filename})
 
+# ─── Colab / browser local image upload ────────────────────────────
+@app.route('/api/upload-images', methods=['POST'])
+def upload_local_images():
+    """Stage browser-selected images or ZIPs for the existing image loader."""
+    import zipfile
+    project_name = (request.form.get('project_name') or 'Colab-Upload').strip()
+    safe_project = config.sanitize_manhwa_name(project_name) or 'Colab-Upload'
+    files = request.files.getlist('files')
+    if not files:
+        return jsonify({'error': 'Choose an image folder or ZIP file first.'}), 400
+    upload_root = os.path.join(config.PROJECTS_DIR, '_colab_uploads', safe_project)
+    os.makedirs(upload_root, exist_ok=True)
+    for name in os.listdir(upload_root):
+        path = os.path.join(upload_root, name)
+        try:
+            shutil.rmtree(path) if os.path.isdir(path) else os.remove(path)
+        except OSError: pass
+    allowed = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'}
+    saved = 0
+    sequence = 0
+    def save_image(stream, name):
+        nonlocal saved, sequence
+        ext = os.path.splitext(name)[1].lower()
+        if ext not in allowed: return
+        sequence += 1
+        target = os.path.join(upload_root, f'page_{sequence:05d}{ext}')
+        with open(target, 'wb') as out: shutil.copyfileobj(stream, out)
+        if os.path.getsize(target): saved += 1
+        else: os.remove(target)
+    try:
+        for uploaded in files:
+            name = (uploaded.filename or '').replace(chr(92), '/')
+            if not name: continue
+            if name.lower().endswith('.zip'):
+                archive_path = os.path.join(upload_root, '_upload.zip')
+                uploaded.save(archive_path)
+                try:
+                    with zipfile.ZipFile(archive_path) as archive:
+                        members = [m for m in archive.infolist() if not m.is_dir() and os.path.splitext(m.filename)[1].lower() in allowed]
+                        if len(members) > 5000: raise ValueError('ZIP contains more than 5000 images.')
+                        if sum(m.file_size for m in members) > 2 * 1024 * 1024 * 1024: raise ValueError('ZIP expands beyond 2 GiB.')
+                        for member in sorted(members, key=lambda item: item.filename.lower()):
+                            with archive.open(member) as stream: save_image(stream, member.filename)
+                finally:
+                    try: os.remove(archive_path)
+                    except OSError: pass
+            else: save_image(uploaded.stream, name)
+        if not saved: return jsonify({'error': 'No supported images found in the upload.'}), 400
+        return jsonify({'status': 'uploaded', 'project_name': safe_project, 'path': upload_root, 'images': saved})
+    except (zipfile.BadZipFile, ValueError) as exc:
+        return jsonify({'error': str(exc)}), 400
+    except Exception as exc:
+        return jsonify({'error': f'Upload failed: {type(exc).__name__}: {exc}'}), 500
+
 # ─── Manhwa Chapter Downloader ───────────────────────────────────
 @app.route('/api/scraper/analyze', methods=['POST'])
 def scraper_analyze():
