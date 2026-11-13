@@ -28,6 +28,25 @@
 
 AniFlow downloads manhwa/webtoon chapters, detects and crops panels using YOLO, extracts speech-bubble text, generates AI narration, converts it to speech, and renders video clips — all through a browser-based UI.
 
+## ☁️ Google Colab (Colab Edition)
+
+Open the included [AniFlow-Colab.ipynb](AniFlow-Colab.ipynb) in Google Colab and run the cells from top to bottom. Choose a GPU runtime when available.
+
+The notebook installs FFmpeg and Chromium, installs Python requirements, mounts Google Drive, starts Ollama, downloads `qwen2.5vl:3b` (vision) and `qwen2.5:3b` (text writer), and launches the existing Flask / Socket.IO UI on port 8080.
+
+### Local images in Colab
+
+In the Source screen, use **Upload image folder** to select a folder from your device or **Upload ZIP** to upload a compressed chapter. AniFlow stages the images in its workspace and fills the source-folder path automatically. You can also enter a folder path under `/content/drive/MyDrive/AniFlow/`.
+
+### URL extraction compatibility
+
+The scraper retains the existing MangaDex API and Madara / reader extractors, adds support for MangaDex chapter-reader URLs, OpenGraph metadata, generic chapter / issue links, direct reader pages, lazy-loaded image attributes, and headless Chromium fallback in Colab. There is no universal extractor for every website: login-gated, DRM-protected, signed-API, or heavily JavaScript-driven services may still require a dedicated adapter and can fail.
+
+### Colab persistence
+
+Projects, inputs, assets, downloads, and generated outputs are linked to the mounted Google Drive workspace. Colab runtimes are temporary; keep Drive mounted and allow output copies to finish before disconnecting.
+
+---
 ## ✨ Features
 
 - 🌐 **Web Scraper** — download chapters from manhuaus, manhwatop, MangaDex, and more
