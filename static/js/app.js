@@ -863,6 +863,7 @@ function selectDownloadedChapter(sel) {
 async function uploadLocalImages(input) {
   const files = Array.from(input.files || []);
   if (!files.length) return;
+  files.sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, undefined, { numeric: true, sensitivity: 'base' }));
   const projectName = (document.getElementById('inputProjectName')?.value || 'Colab-Upload').trim();
   const form = new FormData();
   form.append('project_name', projectName);
