@@ -388,7 +388,17 @@ function renderSourceStep() {
           📁 Browse...
         </button>
       </div>
-      <div class="text-xs text-dim mt-1">Folder containing .jpg/.png images for this chapter</div>
+      <div class="text-xs text-dim mt-1">Folder path on the Colab VM or mounted Google Drive</div>
+    </div>
+    <div class="form-group" style="padding:14px; border:1px dashed var(--blue); border-radius:8px;">
+      <label class="form-label">Upload from your device (Colab)</label>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('localImageFolder').click()">📁 Upload image folder</button>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('localImageZip').click()">🗜️ Upload ZIP</button>
+      </div>
+      <input id="localImageFolder" type="file" accept="image/*" webkitdirectory directory multiple style="display:none" onchange="uploadLocalImages(this)">
+      <input id="localImageZip" type="file" accept=".zip,application/zip" style="display:none" onchange="uploadLocalImages(this)">
+      <div id="localUploadStatus" class="text-xs text-dim mt-1">Folder uploads are copied into the Colab project workspace. ZIP images are extracted automatically.</div>
     </div>
 
     <div class="settings-panel">
