@@ -52,6 +52,20 @@ def _mangadex_analyze(url):
         'site': MANGADEX_DOMAIN, 'error': None
     }
 
+    # Resolve pasted MangaDex chapter URLs to their parent manga.
+    chapter_match = re.search(r'/chapter/([0-9a-f-]{36})', url, re.IGNORECASE)
+    if chapter_match:
+        try:
+            chapter_response = _session.get(f"{MANGADEX_API}/chapter/{chapter_match.group(1)}", timeout=20)
+            chapter_response.raise_for_status()
+            chapter_data = chapter_response.json().get('data', {})
+            manga_id = next((rel.get('id') for rel in chapter_data.get('relationships', []) if rel.get('type') == 'manga' and rel.get('id')), None)
+            if manga_id: return _mangadex_analyze(f"https://mangadex.org/title/{manga_id}")
+            result['error'] = 'MangaDex chapter response did not include its manga relationship.'
+            return result
+        except Exception as e:
+            result['error'] = f'MangaDex chapter lookup error: {e}'
+            return result
     manga_id = _mangadex_extract_id(url)
     if not manga_id:
         result['error'] = "Could not extract manga ID from MangaDex URL."
@@ -80,7 +94,7 @@ def _mangadex_analyze(url):
 
     # Cover image
     for rel in data.get('relationships', []):
-        if rel['type'] == 'cover_art':
+        if rel.get('type') == 'cover_art':
             fname = rel.get('attributes', {}).get('fileName', '')
             if fname:
                 result['cover_url'] = f"{MANGADEX_COVERS}/{manga_id}/{fname}.256.jpg"
