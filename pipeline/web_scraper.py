@@ -34,7 +34,8 @@ MANGADEX_DOMAIN = "mangadex.org"
 
 def _is_mangadex_url(url):
     """Return True if the URL is a MangaDex manga or chapter URL."""
-    return MANGADEX_DOMAIN in urlparse(url).netloc
+    host = (urlparse(url).hostname or "").lower()
+    return host == MANGADEX_DOMAIN or host.endswith("." + MANGADEX_DOMAIN)
 
 
 def _mangadex_extract_id(url):
@@ -77,19 +78,22 @@ def _mangadex_analyze(url):
                          params={'includes[]': ['cover_art', 'author']},
                          timeout=15)
         r.raise_for_status()
-        data = r.json().get('data', {})
+        payload = r.json()
+        data = payload.get('data') or {}
+        if not isinstance(data, dict) or not data:
+            raise ValueError(payload.get('message') or 'MangaDex returned an empty manga record.')
     except Exception as e:
         result['error'] = f"MangaDex API error: {e}"
         return result
 
-    attrs = data.get('attributes', {})
-    titles = attrs.get('title', {})
+    attrs = data.get('attributes') or {}
+    titles = attrs.get('title') or {}
     # Prefer English title, fall back to first available
     title = titles.get('en') or next(iter(titles.values()), 'Unknown')
     result['manga_name'] = title
     result['manga_slug'] = manga_id
 
-    desc = attrs.get('description', {})
+    desc = attrs.get('description') or {}
     result['description'] = desc.get('en') or next(iter(desc.values()), '')
 
     # Cover image
@@ -125,7 +129,10 @@ def _mangadex_analyze(url):
                 result['error'] = f"MangaDex chapter feed error: {e}"
                 break
 
-            items = body.get('data', [])
+            items = body.get('data') or []
+            if not isinstance(items, list):
+                result['error'] = 'MangaDex chapter feed returned an unexpected response format.'
+                break
             if not items:
                 break
 
@@ -186,8 +193,12 @@ def _mangadex_get_chapter_images(chapter_id):
     base_url = body.get('baseUrl', '')
     ch_data = body.get('chapter', {})
     hash_ = ch_data.get('hash', '')
-    pages = ch_data.get('data', [])  # lossless; use dataSaver for compressed
-    return [f"{base_url}/data/{hash_}/{page}" for page in pages]
+    pages = ch_data.get('data') or ch_data.get('dataSaver') or []  # lossless preferred; compressed fallback
+    if not base_url or not hash_ or not isinstance(pages, list):
+        print(f"[MangaDex] Invalid at-home response for {chapter_id}")
+        return []
+    quality = 'data' if ch_data.get('data') else 'data-saver'
+    return [f"{base_url}/{quality}/{hash_}/{page}" for page in pages if isinstance(page, str)]
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
