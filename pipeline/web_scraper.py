@@ -809,7 +809,20 @@ def _get_chapter_images(chapter_url, manga_url):
             print(f"[Scraper] Selector '{selector}' found {len(content_imgs)} images")
             return content_imgs
 
-    # ─── Strategy 5: Brute-force find manga image URLs in HTML ───
+    # ─── Strategy 5: Generic lazy-loaded image tags (various readers) ─
+    generic_images = []
+    for img in soup.find_all('img'):
+        src = (img.get('data-src') or img.get('data-original') or img.get('data-lazy-src') or img.get('src') or '').strip()
+        if not src and img.get('srcset'): src = img.get('srcset').split(',')[-1].strip().split(' ')[0]
+        if not src or src.startswith('data:'): continue
+        if any(word in src.lower() for word in ['logo', 'icon', 'avatar', 'banner', 'emoji', 'ad-', 'gravatar']): continue
+        full = urljoin(chapter_url, src)
+        if full not in generic_images: generic_images.append(full)
+    if len(generic_images) >= 2:
+        print(f'[Scraper] Generic image tags found {len(generic_images)} images')
+        return generic_images
+
+    # ─── Strategy 6: Brute-force find manga image URLs in HTML ───
     # Look for image URLs that match common manga CDN patterns
     cdn_patterns = [
         r'(https?://[^\s"\'<>]+/(?:manga|chapter|uploads/manga)/[^\s"\'<>]+\.(?:jpg|jpeg|png|webp))',
