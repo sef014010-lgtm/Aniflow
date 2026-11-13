@@ -2342,7 +2342,7 @@ def upload_local_images():
                         members = [m for m in archive.infolist() if not m.is_dir() and os.path.splitext(m.filename)[1].lower() in allowed]
                         if len(members) > 5000: raise ValueError('ZIP contains more than 5000 images.')
                         if sum(m.file_size for m in members) > 2 * 1024 * 1024 * 1024: raise ValueError('ZIP expands beyond 2 GiB.')
-                        for member in sorted(members, key=lambda item: item.filename.lower()):
+                        for member in sorted(members, key=lambda item: [int(part) if part.isdigit() else part.lower() for part in re.split(r'(\d+)', item.filename)]):
                             with archive.open(member) as stream: save_image(stream, member.filename)
                 finally:
                     try: os.remove(archive_path)
