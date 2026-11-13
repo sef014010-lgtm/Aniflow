@@ -555,6 +555,11 @@ def analyze_url(url, _depth=0):
     slug = _extract_manga_slug(url)
     result['manga_slug'] = slug
 
+    # Generic metadata fallback for sites exposing OpenGraph metadata.
+    og_title = soup.select_one('meta[property="og:title"], meta[name="twitter:title"]')
+    og_image = soup.select_one('meta[property="og:image"], meta[name="twitter:image"]')
+    og_description = soup.select_one('meta[property="og:description"], meta[name="description"]')
+
     # Try to get manga title
     title_el = (
         soup.select_one('.post-title h1') or  # Madara theme
@@ -563,7 +568,7 @@ def analyze_url(url, _depth=0):
         soup.select_one('h1') or
         soup.select_one('title')
     )
-    title = title_el.get_text(strip=True) if title_el else slug.replace('-', ' ').title()
+    title = title_el.get_text(strip=True) if title_el else (og_title.get('content', '') if og_title else slug.replace('-', ' ').title())
     # Clean up title
     title = re.sub(r'\s*[-–|]\s*(Read|Manhwa|Manga|Online|Free).*$', '', title, flags=re.IGNORECASE)
     result['manga_name'] = title.strip()
@@ -578,6 +583,8 @@ def analyze_url(url, _depth=0):
     )
     if cover:
         result['cover_url'] = cover.get('src') or cover.get('data-src') or cover.get('data-lazy-src')
+    elif og_image:
+        result['cover_url'] = og_image.get('content')
 
     # Try to get description
     desc_el = (
@@ -589,6 +596,8 @@ def analyze_url(url, _depth=0):
     )
     if desc_el:
         result['description'] = desc_el.get('content', '') if desc_el.name == 'meta' else desc_el.get_text(strip=True)
+    elif og_description:
+        result['description'] = og_description.get('content', '')
 
     # ── Extract chapters ─────────────────────────────────────
     chapters = []
@@ -605,9 +614,13 @@ def analyze_url(url, _depth=0):
         chapter_links = [a for a in all_links if re.search(r'chapter[_-]?\d+', a['href'], re.IGNORECASE)
                          and domain in a['href']]
     if not chapter_links:
-        # Strategy 4: Any link containing the slug + chapter
+        # Generic episode / issue links used by non-Madara comic platforms.
         chapter_links = [a for a in soup.find_all('a', href=True)
-                         if slug in a['href'] and re.search(r'chapter', a['href'], re.IGNORECASE)]
+                         if re.search(r'(?:chapter|chap|episode|issue|ep)[/_. -]*[0-9]+', a['href'], re.IGNORECASE)]
+    if not chapter_links:
+        chapter_links = [a for a in soup.find_all('a', href=True)
+                         if re.search(r'(?:chapter|episode|issue)', a.get_text(' ', strip=True), re.IGNORECASE)
+                         and urlparse(urljoin(url, a['href'])).netloc == urlparse(url).netloc]
 
     seen_urls = set()
     for a in chapter_links:
