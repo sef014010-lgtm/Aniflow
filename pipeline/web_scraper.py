@@ -683,7 +683,8 @@ def analyze_url(url, _depth=0):
     result['chapters'] = unique_chapters
     result['total_chapters'] = len(unique_chapters)
 
-    if not unique_chapters:
+    reader_url = bool(re.search(r'(?:chapter|chap|episode|issue|release|viewer|read)', urlparse(url).path, re.IGNORECASE))
+    if not unique_chapters and reader_url:
         # Treat a pasted reader/issue URL as a single chapter when its page
         # exposes a sequence of actual comic images.
         try:
