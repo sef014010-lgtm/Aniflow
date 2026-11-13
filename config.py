@@ -100,14 +100,12 @@ NINE_ROUTER_HOST = os.getenv("NINE_ROUTER_HOST", "http://127.0.0.1:20128")
 NINE_ROUTER_API_KEY = os.getenv("NINE_ROUTER_API_KEY", "")
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5vl:7b")               # Legacy fallback
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5vl:3b")               # Legacy fallback
 VISION_MODEL  = os.getenv("VISION_MODEL", "qwen2.5vl:3b")       # Step 1 — The Eyes (text extraction + scene description)
 WRITER_MODEL  = os.getenv("WRITER_MODEL", "qwen2.5:3b") # Step 2 — The Writer (narration) [legacy, used when DECOUPLED_NARRATION=False]
 # Step 2b — Pure-text storyteller (decoupled pipeline).
-# gemma3:27b writes noticeably more natural, human-sounding recap narration
-# than smaller models. Override via TEXT_WRITER_MODEL env var (e.g. qwen2.5:14b
-# on machines with <24GB VRAM/RAM — the narrator auto-falls-back to whatever
-# text model is installed if the preferred one is missing).
+# Use a compact default for Colab. Override with a larger text model when
+# more RAM/VRAM is available; the narrator falls back to an installed model.
 TEXT_WRITER_MODEL = os.getenv("TEXT_WRITER_MODEL", "qwen2.5:3b")
 DECOUPLED_NARRATION = True         # True = Vision Parser → Text Storyteller (recommended)
 OLLAMA_TIMEOUT = 180  # seconds per panel
