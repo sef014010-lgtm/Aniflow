@@ -295,6 +295,10 @@ def _get_drission_browser():
     co.set_argument("--window-size", "1280,800")
     co.set_argument("--no-first-run")
     co.set_argument("--no-default-browser-check")
+    if os.getenv("COLAB_RELEASE_TAG"):
+        co.set_argument("--headless=new")
+        co.set_argument("--no-sandbox")
+        co.set_argument("--disable-dev-shm-usage")
     co.auto_port()  # Avoid conflict with port 9222
 
     try:
