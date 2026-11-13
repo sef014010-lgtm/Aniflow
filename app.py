@@ -32,7 +32,7 @@ app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'aniflow-dev-key')
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB upload limit
+app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('ANIFLOW_MAX_UPLOAD_BYTES', str(1024 * 1024 * 1024)))  # 1 GiB upload limit
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 orchestrator = Orchestrator()
 narrator = Narrator()
