@@ -674,6 +674,20 @@ def analyze_url(url, _depth=0):
     result['total_chapters'] = len(unique_chapters)
 
     if not unique_chapters:
+        # Treat a pasted reader/issue URL as a single chapter when its page
+        # exposes a sequence of actual comic images.
+        try:
+            page_images = _get_chapter_images(url, url)
+        except Exception:
+            page_images = []
+        if len(page_images) >= 2:
+            number_match = re.search(r'(?:chapter|chap|episode|issue|ep)[/_. -]*(\d+(?:\.\d+)?)', url, re.IGNORECASE)
+            chapter_number = float(number_match.group(1)) if number_match else 1
+            if chapter_number.is_integer(): chapter_number = int(chapter_number)
+            result['chapters'] = [{'number': chapter_number, 'title': f'Chapter {chapter_number}', 'url': url, 'date': ''}]
+            result['total_chapters'] = 1
+            return result
+    if not unique_chapters:
         # The pasted URL may be a chapter/reader page rather than the series
         # listing. Climb to the parent series URL and retry once before giving
         # up, so a reader URL like .../title/chap-1/ still resolves.
