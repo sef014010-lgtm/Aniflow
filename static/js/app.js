@@ -850,6 +850,30 @@ function selectDownloadedChapter(sel) {
   APP.sourceFolder = d.path;
 }
 
+async function uploadLocalImages(input) {
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  const projectName = (document.getElementById('inputProjectName')?.value || 'Colab-Upload').trim();
+  const form = new FormData();
+  form.append('project_name', projectName);
+  files.forEach(file => form.append('files', file, file.webkitRelativePath || file.name));
+  const status = document.getElementById('localUploadStatus');
+  if (status) status.textContent = `Uploading ${files.length} file(s)…`;
+  try {
+    const response = await fetch('/api/upload-images', { method: 'POST', body: form });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Upload failed');
+    const folder = document.getElementById('inputSourceFolder');
+    if (folder) folder.value = data.path;
+    APP.sourceFolder = data.path;
+    if (status) status.textContent = `Uploaded ${data.images} images. Folder ready: ${data.path}`;
+    toast(`Uploaded ${data.images} images`, 'success');
+  } catch (error) {
+    if (status) status.textContent = error.message;
+    toast(error.message, 'error');
+  } finally { input.value = ''; }
+}
+
 async function browseFolderForSource() {
   try {
     const response = await fetch('/api/browse-folder', { method: 'POST' });
